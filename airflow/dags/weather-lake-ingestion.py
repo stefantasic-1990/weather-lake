@@ -3,7 +3,7 @@ from datetime import datetime
 
 @dag(
     start_date=datetime(2025, 1, 1),
-    schedule="0 * * * * *",
+    schedule=None,
     catchup=False,
 )
 def weather_lake_ingestion():
@@ -45,3 +45,5 @@ def weather_lake_ingestion():
         transform_data_to_parquet_task >>
         register_new_partition_task
     )
+
+weather_lake_ingestion()
