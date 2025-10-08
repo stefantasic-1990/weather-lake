@@ -17,10 +17,10 @@ x-airflow-common:
     AIRFLOW_CONFIG: '/opt/airflow/config/airflow.cfg'
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
   volumes:
-    - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
-    - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
-    - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
-    - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
+    - ${AIRFLOW_PROJ_DIR}/dags:/opt/airflow/dags
+    - ${AIRFLOW_PROJ_DIR}/logs:/opt/airflow/logs
+    - ${AIRFLOW_PROJ_DIR}/config:/opt/airflow/config
+    - ${AIRFLOW_PROJ_DIR}/plugins:/opt/airflow/plugins
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on
@@ -29,7 +29,66 @@ x-airflow-common:
     postgres:
       condition: service_healthy
 
+x-spark-common:
+  &spark-common
+  image: spark:3.5.7-scala2.12-java17-python3-ubuntu
+
 services:
+  spark-master:
+    image: spark:3.5.7-scala2.12-java17-python3-ubuntu
+    command: >
+      /opt/spark/bin/spark-class
+      org.apache.spark.deploy.master.Master
+      --host spark-master
+      --port 7077
+      --webui-port 8080
+    environment:
+      - SPARK_NO_DAEMONIZE=true
+      - SPARK_LOG_DIR=/opt/spark/logs
+    ports:
+      - "7077:7077"
+      - "8082:8080"
+    volumes:
+      - ${SPARK_PROJ_DIR}/logs:/opt/spark/logs
+    restart: always
+  
+  spark-worker:
+    image: spark:3.5.7-scala2.12-java17-python3-ubuntu
+    depends_on:
+      - spark-master
+    command: >
+      /opt/spark/bin/spark-class
+      org.apache.spark.deploy.worker.Worker
+      --webui-port 8081
+      spark://spark-master:7077
+    environment:
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=2g
+      - SPARK_LOG_DIR=/opt/spark/logs
+    ports:
+      - "8081:8081"
+    volumes:
+      - ${SPARK_PROJ_DIR}/logs:/opt/spark/logs
+      - ${SPARK_PROJ_DIR}/conf/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
+
+  spark-submit:
+    image: spark:3.5.7-scala2.12-java17-python3-ubuntu
+    depends_on:
+      - spark-master
+    command: ["bash", "-lc", "sleep infinity"]
+    environment:
+      - SPARK_LOG_DIR=/opt/spark/logs
+      - PYSPARK_PYTHON=/usr/bin/python3
+    ports:
+      - "4040:4040"
+    volumes:
+      - ${SPARK_PROJ_DIR}/logs:/opt/spark/logs
+      - ${SPARK_PROJ_DIR}/apps:/opt/spark/apps:rw
+      - ${SPARK_PROJ_DIR}/conf/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
+      - ${SPARK_PROJ_DIR}/apps:/opt/spark/apps
+      - ${HIVE_PROJ_DIR}/conf/hive-site.xml:/opt/spark/conf/hive-site.xml:ro
+      - spark-ivy-cache:/root/.ivy2
+
   hive-metastore:
     image: apache/hive:4.1.0
     ports:
@@ -37,22 +96,13 @@ services:
     environment:
       SERVICE_NAME: metastore
       DB_DRIVER: postgres
-      SERVICE_OPTS: >
-        -Djavax.jdo.option.ConnectionDriverName=org.postgresql.Driver
-        -Djavax.jdo.option.ConnectionURL=jdbc:postgresql://postgres:5432/metastore
-        -Djavax.jdo.option.ConnectionUserName=hive
-        -Djavax.jdo.option.ConnectionPassword=hivepass
-        -Dhive.metastore.warehouse.dir=s3a://weather-lake/
-        -Dfs.s3a.endpoint=http://minio:9000
-        -Dfs.s3a.access.key=minioadmin
-        -Dfs.s3a.secret.key=minioadmin
-        -Dfs.s3a.path.style.access=true
-        -Dfs.s3a.connection.ssl.enabled=false
     depends_on:
       - postgres
       - minio
+    restart: always
     volumes:
-      - ./hive/postgresql-42.7.8.jar:/opt/hive/lib/postgres.jar
+      - ${HIVE_PROJ_DIR}/conf/hive-site.xml:/opt/hive/conf/hive-site.xml
+      - ${HIVE_PROJ_DIR}/driver/postgresql-42.7.8.jar:/opt/hive/lib/postgres.jar
 
   minio:
     image: minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1
@@ -80,7 +130,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
-      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ${POSTGRES_PROJ_DIR}/conf/db-init.sql:/docker-entrypoint-initdb.d/db-init.sql
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "airflow"]
       interval: 10s
@@ -261,3 +311,4 @@ services:
 volumes:
   postgres-db-volume:
   minio-volume:
+  spark-ivy-cache:
