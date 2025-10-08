@@ -30,6 +30,47 @@ x-airflow-common:
       condition: service_healthy
 
 services:
+  hive-metastore:
+    image: apache/hive:4.1.0
+    ports:
+      - "9083:9083"
+    environment:
+      SERVICE_NAME: metastore
+      DB_DRIVER: postgres
+      SERVICE_OPTS: >
+        -Djavax.jdo.option.ConnectionDriverName=org.postgresql.Driver
+        -Djavax.jdo.option.ConnectionURL=jdbc:postgresql://postgres:5432/metastore
+        -Djavax.jdo.option.ConnectionUserName=hive
+        -Djavax.jdo.option.ConnectionPassword=hivepass
+        -Dhive.metastore.warehouse.dir=s3a://weather-lake/
+        -Dfs.s3a.endpoint=http://minio:9000
+        -Dfs.s3a.access.key=minioadmin
+        -Dfs.s3a.secret.key=minioadmin
+        -Dfs.s3a.path.style.access=true
+        -Dfs.s3a.connection.ssl.enabled=false
+    depends_on:
+      - postgres
+      - minio
+    volumes:
+      - ./hive/postgresql-42.7.8.jar:/opt/hive/lib/postgres.jar
+
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command:
+      - server
+      - /data
+      - --console-address
+      - ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    restart: always
+    volumes:
+      - minio-volume:/data
+
   postgres:
     image: postgres:16
     environment:
