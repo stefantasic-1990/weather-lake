@@ -20,7 +20,11 @@ CREATE TABLE weather_lake.weather_lake_etl_config (
     wind_direction_10m BOOLEAN NOT NULL,
     pressure_msl BOOLEAN NOT NULL,
     meta_created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-)
+);
+
+-- Grant permissions to Airflow
+GRANT USAGE ON SCHEMA weather_lake TO airflow;
+GRANT SELECT ON weather_lake.weather_lake_etl_config TO airflow;
 
 -- Insert default records into ETL config table
 INSERT INTO weather_lake.weather_lake_etl_config (
@@ -33,14 +37,8 @@ INSERT INTO weather_lake.weather_lake_etl_config (
     wind_speed_10m,
     wind_direction_10m,
     pressure_msl
-) VALUES (
-    "Toronto",
-    "43.7064",
-    "-79.3986",
-    TRUE,
-    TRUE,
-    TRUE,
-    TRUE,
-    TRUE,
-    TRUE
-);
+)
+VALUES 
+    ('Toronto', 43.7064, -79.3986, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),
+    ('Vancouver', 49.2497, -123.1207, TRUE, TRUE, TRUE, FALSE, FALSE, TRUE),
+    ('Calgary', 51.0501, -114.0853, TRUE, TRUE, TRUE, TRUE, FALSE, TRUE);

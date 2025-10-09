@@ -1,8 +1,20 @@
 import requests
 import hashlib
 from datetime import datetime
+from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 temp_file_dir="/opt/airflow/temp/"
+
+def get_etl_configs_handler():
+    pg_hook = PostgresHook(postgres_conn_id='postgres', schema='weather_lake')
+    conn_cursor = pg_hook.get_conn().cursor()
+    conn_cursor.execute("""
+        SELECT *
+        FROM weather_lake.weather_lake_etl_config;
+    """)
+    configs = conn_cursor.fetchall()
+
+    print(configs)
 
 def download_weather_data_handler():
     timestamp = datetime.utcnow().strftime("%Y%m%d%H%M")
