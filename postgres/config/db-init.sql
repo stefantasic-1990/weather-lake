@@ -6,9 +6,9 @@ CREATE DATABASE airflow OWNER airflow;
 CREATE USER hive WITH PASSWORD 'hivepass';
 CREATE DATABASE metastore OWNER hive;
 
--- Create pipeline ingestion config table
+-- Create ETL config table
 CREATE SCHEMA weather_lake AUTHORIZATION postgres;
-CREATE TABLE weather_lake.weather_lake_ingestion_config (
+CREATE TABLE weather_lake.weather_lake_etl_config (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     dataset_name TEXT NOT NULL UNIQUE,
     latitude NUMERIC(9, 6) NOT NULL,
@@ -19,13 +19,11 @@ CREATE TABLE weather_lake.weather_lake_ingestion_config (
     wind_speed_10m BOOLEAN NOT NULL,
     wind_direction_10m BOOLEAN NOT NULL,
     pressure_msl BOOLEAN NOT NULL,
-    meta_valid_from TIMESTAMPTZ NOT NULL DEFAULT now(),
-    meta_valid_to TIMESTAMPTZ,
-    meta_current_flag BOOLEAN NOT NULL DEFAULT true
+    meta_created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 )
 
--- Insert default records into ingestion config table
-INSERT INTO weather_lake.weather_lake_ingestion_config (
+-- Insert default records into ETL config table
+INSERT INTO weather_lake.weather_lake_etl_config (
     dataset_name,
     latitude,
     longitude,
@@ -37,5 +35,12 @@ INSERT INTO weather_lake.weather_lake_ingestion_config (
     pressure_msl
 ) VALUES (
     "Toronto",
-    ""
-)
+    "43.7064",
+    "-79.3986",
+    TRUE,
+    TRUE,
+    TRUE,
+    TRUE,
+    TRUE,
+    TRUE
+);

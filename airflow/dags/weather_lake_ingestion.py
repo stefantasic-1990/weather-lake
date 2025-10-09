@@ -10,10 +10,10 @@ from datetime import datetime
 def weather_lake_ingestion():
 
     @task
-    def get_ingestion_configs():
-        return hand.get_ingestion_configs_handler()
+    def get_etl_configs():
+        return hand.get_etl_configs_handler()
     
-    get_ingestion_configs_task=get_ingestion_configs()
+    get_etl_configs_task=get_etl_configs()
 
     @task
     def download_weather_data():
@@ -46,7 +46,7 @@ def weather_lake_ingestion():
     register_new_partition_task=register_new_partition()
 
     (
-        get_ingestion_configs_task >>
+        get_etl_configs_task >>
         download_weather_data_task >>
         check_data_newness_task >>
         archive_raw_csv_data_task >>
