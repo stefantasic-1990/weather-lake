@@ -1,2 +1,4 @@
 /airflow/logs/
 /spark/logs/
+/airflow/temp/
+__pycache__/
