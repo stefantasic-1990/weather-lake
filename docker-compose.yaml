@@ -153,7 +153,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
-      - ${POSTGRES_PROJ_DIR}/config/db-init.sql:/docker-entrypoint-initdb.d/db-init.sql
+      - ${POSTGRES_PROJ_DIR}/init/db-init.sql:/docker-entrypoint-initdb.d/db-init.sql
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "airflow"]
       interval: 10s
