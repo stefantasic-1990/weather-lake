@@ -44,10 +44,10 @@ VALUES
     ('Calgary', 51.0501, -114.0853, TRUE, TRUE, TRUE, TRUE, FALSE, TRUE);
 
 -- Create ETL data file log table, grant read and insert to Airflow
-CREATE TABLE weather_lake.weather_lake_etl_file_log (
+CREATE TABLE weather_lake.weather_lake_ingestion_log (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     file_name TEXT NOT NULL UNIQUE,
     file_digest TEXT NOT NULL UNIQUE,
     meta_created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-GRANT SELECT, INSERT ON weather_lake.weather_lake_etl_file_log TO airflow;
+GRANT SELECT, INSERT ON weather_lake.weather_lake_ingestion_log TO airflow;

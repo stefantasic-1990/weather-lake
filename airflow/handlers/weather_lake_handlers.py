@@ -66,7 +66,7 @@ def check_data_newness_handler(temp_file_path, temp_file_digest):
             curs.execute("""
                 SELECT EXISTS (
                     SELECT 1
-                    FROM weather_lake.weather_lake_etl_file_log
+                    FROM weather_lake.weather_lake_ingestion_log
                     WHERE file_digest = %s
                     AND meta_created_at >= now() - interval '3 hours'
                 );
@@ -78,7 +78,7 @@ def check_data_newness_handler(temp_file_path, temp_file_digest):
 
             # temp_file_name = Path(temp_file_path).name
             # curs.execute(f"""
-            #     INSERT INTO weather_lake.weather_lake_etl_file_log (file_name, file_digest)
+            #     INSERT INTO weather_lake.weather_lake_ingestion_log (file_name, file_digest)
             #     VALUES (%s, %s);
             # """, (temp_file_name, temp_file_digest))
 
