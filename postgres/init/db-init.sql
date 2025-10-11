@@ -6,11 +6,14 @@ CREATE DATABASE airflow OWNER airflow;
 CREATE USER hive WITH PASSWORD 'hivepass';
 CREATE DATABASE metastore OWNER hive;
 
--- Create ETL config table
+-- Create ETL schema, grant usage to Airflow
 CREATE SCHEMA weather_lake AUTHORIZATION postgres;
+GRANT USAGE ON SCHEMA weather_lake TO airflow;
+
+-- Create ETL config table, grant read to Airflow
 CREATE TABLE weather_lake.weather_lake_etl_config (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    dataset_name TEXT NOT NULL UNIQUE,
+    geolocation_name TEXT NOT NULL UNIQUE,
     latitude NUMERIC(9, 6) NOT NULL,
     longitude NUMERIC(9, 6) NOT NULL,
     temperature_2m BOOLEAN NOT NULL,
@@ -21,14 +24,11 @@ CREATE TABLE weather_lake.weather_lake_etl_config (
     pressure_msl BOOLEAN NOT NULL,
     meta_created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
--- Grant permissions to Airflow
-GRANT USAGE ON SCHEMA weather_lake TO airflow;
 GRANT SELECT ON weather_lake.weather_lake_etl_config TO airflow;
 
--- Insert default records into ETL config table
+-- Insert records into ETL config table
 INSERT INTO weather_lake.weather_lake_etl_config (
-    dataset_name,
+    geolocation_name,
     latitude,
     longitude,
     temperature_2m,
@@ -42,3 +42,12 @@ VALUES
     ('Toronto', 43.7064, -79.3986, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),
     ('Vancouver', 49.2497, -123.1207, TRUE, TRUE, TRUE, FALSE, FALSE, TRUE),
     ('Calgary', 51.0501, -114.0853, TRUE, TRUE, TRUE, TRUE, FALSE, TRUE);
+
+-- Create ETL data file log table, grant read and insert to Airflow
+CREATE TABLE weather_lake.weather_lake_etl_file_log (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    file_name TEXT NOT NULL UNIQUE,
+    file_digest TEXT NOT NULL UNIQUE,
+    meta_created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+GRANT SELECT, INSERT ON weather_lake.weather_lake_etl_file_log TO airflow;

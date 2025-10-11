@@ -16,22 +16,22 @@ def weather_lake_ingestion():
     get_etl_configs_task=get_etl_configs()
 
     @task
-    def download_weather_data():
-        return hand.download_weather_data_handler()
+    def download_weather_data(config):
+        return hand.download_weather_data_handler(config)
 
-    download_weather_data_task=download_weather_data()
-
-    @task
-    def check_data_newness():
-        return
-
-    check_data_newness_task=check_data_newness()
+    download_weather_data_task=download_weather_data.expand(config=get_etl_configs_task)
 
     @task
-    def archive_raw_csv_data():
-        return
+    def check_data_newness(temp_file_path, temp_file_digest):
+        return hand.check_data_newness_handler(temp_file_path, temp_file_digest)
 
-    archive_raw_csv_data_task=archive_raw_csv_data()
+    check_data_newness_task=check_data_newness.expand_kwargs(download_weather_data_task)
+
+    @task
+    def archive_raw_csv_data(temp_file_path):
+        return hand.archive_raw_csv_data_handler(temp_file_path)
+
+    archive_raw_csv_data_task=archive_raw_csv_data.expand(temp_file_path=check_data_newness_task)
 
     @task
     def transform_data_to_parquet():

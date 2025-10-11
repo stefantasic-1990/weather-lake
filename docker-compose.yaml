@@ -139,7 +139,7 @@ services:
 
         echo "==> Creating buckets"
         mc alias set myminio http://minio:9000 minioadmin minioadmin
-        mc mb -p myminio/weather-raw || true
+        mc mb -p myminio/weather-lake-raw-archive || true
         mc mb -p myminio/weather-lake || true
 
         echo "==> MinIO initialization complete."
