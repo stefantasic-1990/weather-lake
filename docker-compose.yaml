@@ -24,6 +24,7 @@ x-airflow-common:
     - ${AIRFLOW_PROJ_DIR}/logs:/opt/airflow/logs
     - ${AIRFLOW_PROJ_DIR}/config:/opt/airflow/config
     - ${AIRFLOW_PROJ_DIR}/handlers:/opt/airflow/handlers
+    - ${AIRFLOW_PROJ_DIR}/spark-apps:/opt/airflow/spark-apps
     - ${AIRFLOW_PROJ_DIR}/plugins:/opt/airflow/plugins
     - ${AIRFLOW_PROJ_DIR}/temp:/opt/airflow/temp
   user: "${AIRFLOW_UID:-50000}:0"
@@ -82,14 +83,19 @@ services:
       SPARK_SUBMIT_OPTS: "-Duser.home=/opt/spark"
     depends_on:
       - spark-master
-    command: ["bash", "-lc", "sleep infinity"]
+    user: root
+    entrypoint: /bin/bash
+    command: >
+      -c "chown -R spark:spark /home/spark &&
+      chmod -R 755 /home/spark &&
+      exec su spark -c 'sleep infinity'"
     ports:
       - "4040:4040"
     volumes:
       - ${SPARK_PROJ_DIR}/apps:/opt/spark/apps
       - ${SPARK_PROJ_DIR}/config/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
       - ${HIVE_PROJ_DIR}/config/hive-site.xml:/opt/spark/conf/hive-site.xml:ro
-      - spark-ivy-cache:/opt/spark/.ivy2
+      - spark-ivy-cache:/home/spark/.ivy2
 
   hive-metastore:
     image: apache/hive:4.1.0

@@ -5,6 +5,7 @@ from datetime import datetime
 from psycopg2.extras import RealDictCursor
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.providers.apache.spark.hooks.spark_submit import SparkSubmitHook
 from airflow.exceptions import AirflowSkipException
 
 temp_file_dir="/opt/airflow/temp/"
@@ -98,8 +99,8 @@ def archive_raw_csv_data_handler(temp_file_path):
         f"{forecast_name}_{dt.hour:02d}{dt.minute:02d}_utc.csv"
     )
     
-    mi_hook = S3Hook(aws_conn_id="minio")
-    mi_hook.load_file(
+    minio_hook = S3Hook(aws_conn_id="minio")
+    minio_hook.load_file(
         filename=temp_file_path,
         key=object_key,
         bucket_name=archive_bucket_name,
@@ -109,4 +110,14 @@ def archive_raw_csv_data_handler(temp_file_path):
     return object_key
 
 def transform_data_to_parquet_handler(object_key):
-    return
+    spark_hook = SparkSubmitHook(
+        conn_id="spark",
+        application="/opt/airflow/spark-apps/weather-lake-load.py",
+        deploy_mode="client",
+        verbose=True,
+        application_args=[
+            "--input", f"s3a://weather-lake-raw-archive/{}",
+            "--output", f"s3a://weather-lake/{}"
+        ]
+    )
+    spark_hook.submit()
