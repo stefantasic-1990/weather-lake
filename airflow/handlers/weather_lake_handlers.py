@@ -107,3 +107,6 @@ def archive_raw_csv_data_handler(temp_file_path):
     )
 
     return object_key
+
+def transform_data_to_parquet_handler(object_key):
+    return
