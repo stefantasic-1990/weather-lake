@@ -105,3 +105,5 @@ def archive_raw_csv_data_handler(temp_file_path):
         bucket_name=archive_bucket_name,
         replace=True
     )
+
+    return object_key
