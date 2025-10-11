@@ -1,7 +1,7 @@
 
 x-airflow-common:
   &airflow-common
-  image: apache/airflow:3.1.0
+  build: .
   environment:
     &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor

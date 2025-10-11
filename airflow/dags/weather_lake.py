@@ -37,7 +37,7 @@ def weather_lake_ingestion():
     def transform_data_to_parquet(object_key):
         return transform_data_to_parquet_handler(object_key)
 
-    transform_data_to_parquet_task=transform_data_to_parquet.expand(object_key=archive_raw_csv_data_task)
+    transform_data_to_parquet_task=transform_data_to_parquet(object_keys=archive_raw_csv_data_task)
     
     @task
     def register_new_partition():
