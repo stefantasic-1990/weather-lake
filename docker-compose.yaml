@@ -89,9 +89,8 @@ services:
     ports:
       - "4040:4040"
     volumes:
-      - ${SPARK_PROJ_DIR}/apps:/opt/spark/apps:rw
-      - ${SPARK_PROJ_DIR}/config/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
       - ${SPARK_PROJ_DIR}/apps:/opt/spark/apps
+      - ${SPARK_PROJ_DIR}/config/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
       - ${HIVE_PROJ_DIR}/config/hive-site.xml:/opt/spark/conf/hive-site.xml:ro
       - ${SPARK_PROJ_DIR}/logs:/opt/spark/logs
       - spark-ivy-cache:/root/.ivy2
