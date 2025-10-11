@@ -38,7 +38,7 @@ x-spark-common:
   &spark-common
   image: spark:3.5.7-scala2.12-java17-python3-ubuntu
   environment:
-    HOME: /root
+    SPARK_LOG_DIR: /opt/spark/logs
   volumes:
     - ${SPARK_PROJ_DIR}/logs:/opt/spark/logs
 
@@ -53,7 +53,6 @@ services:
       --webui-port 8080
     environment:
       SPARK_NO_DAEMONIZE: true
-      SPARK_LOG_DIR: /opt/spark/logs
     ports:
       - "7077:7077"
       - "8082:8080"
@@ -71,7 +70,6 @@ services:
     environment:
       SPARK_WORKER_CORES: 2
       SPARK_WORKER_MEMORY: 2g
-      SPARK_LOG_DIR: /opt/spark/logs
     ports:
       - "8081:8081"
     volumes:
@@ -80,8 +78,8 @@ services:
   spark-submit:
     <<: *spark-common
     environment:
-      SPARK_LOG_DIR: /opt/spark/logs
       PYSPARK_PYTHON: /usr/bin/python3
+      SPARK_SUBMIT_OPTS: "-Duser.home=/opt/spark"
     depends_on:
       - spark-master
     command: ["bash", "-lc", "sleep infinity"]
@@ -91,7 +89,7 @@ services:
       - ${SPARK_PROJ_DIR}/apps:/opt/spark/apps
       - ${SPARK_PROJ_DIR}/config/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
       - ${HIVE_PROJ_DIR}/config/hive-site.xml:/opt/spark/conf/hive-site.xml:ro
-      - spark-ivy-cache:/root/.ivy2
+      - spark-ivy-cache:/opt/spark/.ivy2
 
   hive-metastore:
     image: apache/hive:4.1.0
