@@ -88,8 +88,9 @@ services:
     entrypoint: /bin/bash
     command: >
       -c "chown -R spark:spark /home/spark &&
-      chmod -R 755 /home/spark &&
-      exec su spark -c 'sleep infinity'"
+          chmod -R 755 /home/spark &&
+          /usr/sbin/sshd -D &&
+          exec su spark -c 'sleep infinity'"
     ports:
       - "4040:4040"
     volumes:

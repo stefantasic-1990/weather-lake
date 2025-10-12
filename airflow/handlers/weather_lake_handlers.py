@@ -1,12 +1,14 @@
 import requests
 import hashlib
+import paramiko
+import logging
 from pathlib import Path
 from datetime import datetime
 from psycopg2.extras import RealDictCursor
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.apache.spark.hooks.spark_submit import SparkSubmitHook
-from airflow.exceptions import AirflowSkipException
+from airflow.exceptions import AirflowSkipException, AirflowFailException
 
 temp_file_dir="/opt/airflow/temp/"
 
@@ -110,13 +112,35 @@ def archive_raw_csv_data_handler(temp_file_path):
     return object_key
 
 def transform_data_to_parquet_handler(object_keys):
-    print(object_keys)
-    spark_hook = SparkSubmitHook(
-        conn_id="spark",
-        verbose=True,
-        application_args=[
-            "--input", f"s3a://weather-lake-raw-archive/",
-            "--output", f"s3a://weather-lake/"
-        ]
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect("spark-submit", username="spark", password="spark")
+
+    command = (
+        "/opt/spark/bin/spark-submit" \
+        "--packages org.apache.hadoop:hadoop-aws:3.3.4" \
+        "--master spark://spark-master:7077" \
+        "/opt/spark/apps/weather-lake-load.py"
     )
-    spark_hook.submit(application="/opt/airflow/spark-apps/weather-lake-load.py")
+
+    stdin, stdout, stderr = ssh.exec_command(command)
+
+    info.logging("Executing Spark job...")
+    while not stdout.channel.exit_status_ready():
+        if stdout.channel.recv_ready():
+            chunk = stdout.channel.recv(4096).decode("utf-8")
+            info.logging(chunk)
+
+        if stderr.channel.recv_stderr_ready():
+            error_chunk = stderr.channel.recv_stderr(4096).decode("utf-8")
+            info.logging(error_chunk)
+
+        sleep(0.5)
+
+    exit_code = stdout.channel.recv_exit_status()
+    info.logging(stdout.read().decode("utf-8"))
+    info.logging(stderr.read().decode("utf-8"))
+    ssh.close()
+
+    if exit_code != 0:
+        AirflowFailException(f"Spark job failed to execute.")
