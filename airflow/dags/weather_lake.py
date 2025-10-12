@@ -34,8 +34,8 @@ def weather_lake_ingestion():
     archive_raw_csv_data_task=archive_raw_csv_data.expand(temp_file_path=check_data_newness_task)
 
     @task
-    def transform_data_to_parquet(object_key):
-        return transform_data_to_parquet_handler(object_key)
+    def transform_data_to_parquet(object_keys):
+        return hand.transform_data_to_parquet_handler(object_keys)
 
     transform_data_to_parquet_task=transform_data_to_parquet(object_keys=archive_raw_csv_data_task)
     

@@ -17,6 +17,7 @@ x-airflow-common:
     AIRFLOW_CONFIG: '/opt/airflow/config/airflow.cfg'
     AIRFLOW_CONN_MINIO: 's3://minioadmin:minioadmin@minio:9000?endpoint_url=http%3A%2F%2Fminio%3A9000'
     AIRFLOW_CONN_POSTGRES: 'postgresql+psycopg2://airflow:airflow@postgres:5432/postgres'
+    AIRFLOW_CONN_SPARK: 'spark://spark%3A%2F%2Fspark-master:7077//?__extra__=%7B%7D'
     PYTHONPATH: /opt/airflow
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
   volumes:
@@ -37,7 +38,7 @@ x-airflow-common:
 
 x-spark-common:
   &spark-common
-  image: spark:3.5.7-scala2.12-java17-python3-ubuntu
+  image: spark:4.0.0-scala2.13-java21-python3-ubuntu
   environment:
     SPARK_LOG_DIR: /opt/spark/logs
   volumes:

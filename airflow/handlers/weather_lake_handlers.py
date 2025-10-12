@@ -110,14 +110,13 @@ def archive_raw_csv_data_handler(temp_file_path):
     return object_key
 
 def transform_data_to_parquet_handler(object_keys):
+    print(object_keys)
     spark_hook = SparkSubmitHook(
         conn_id="spark",
-        application="/opt/airflow/spark-apps/weather-lake-load.py",
-        deploy_mode="client",
         verbose=True,
         application_args=[
             "--input", f"s3a://weather-lake-raw-archive/",
             "--output", f"s3a://weather-lake/"
         ]
     )
-    spark_hook.submit()
+    spark_hook.submit(application="/opt/airflow/spark-apps/weather-lake-load.py")
