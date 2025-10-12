@@ -15,6 +15,7 @@ object_uris = [f"s3a://{args.raw_bucket}/{key}" for key in object_keys]
 spark = SparkSession.builder.appName("Weather-Lake-Load").getOrCreate()
 
 df = spark.read.option("header", True).csv(object_uris)
+
 df = (
     df.withColumn("input_file", input_file_name())
       .withColumn("location_name", regexp_extract("input_file", r"location_name=([^/]+)/", 1))
@@ -23,7 +24,19 @@ df = (
       .withColumn("day", regexp_extract("input_file", r"day=(\d{2})", 1).cast(IntegerType()))
 )
 
+column_rename_map = {
+    "time": "forecast_datetime_utc",
+    "pressure_msl (hPa)": "pressure_msl_hpa",
+    "precipitation (mm)": "precipitation_mm",
+    "temperature_2m (°C)": "temperature_2m_celsius",
+    "wind_speed_10m (km/h)": "wind_speed_10m_kmh",
+    "relative_humidity_2m (%)": "relative_humidity_2m_percentage",
+}
+
+for source_name, target_name in column_rename_map.items():
+    df = df.withColumnRenamed(source_name, target_name)
+
 df.write.mode("append").partitionBy("location_name", "year", "month", "day") \
-    .parquet(f"s3a://{args.warehouse_bucket}/curated/")
+    .parquet(f"s3a://{args.warehouse_bucket}/")
 
 spark.stop()
