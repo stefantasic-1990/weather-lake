@@ -1,7 +1,7 @@
 
 x-airflow-common:
   &airflow-common
-  build: .
+  build: ./airflow
   environment:
     &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
@@ -38,7 +38,7 @@ x-airflow-common:
 
 x-spark-common:
   &spark-common
-  image: spark:4.0.0-scala2.13-java21-python3-ubuntu
+  build: ./spark
   environment:
     SPARK_LOG_DIR: /opt/spark/logs
   volumes:
