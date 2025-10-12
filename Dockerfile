@@ -1,3 +1,5 @@
 FROM apache/airflow:3.1.0
 
-RUN pip install apache-airflow-providers-apache-spark
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
