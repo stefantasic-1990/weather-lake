@@ -43,7 +43,7 @@ def download_weather_data_handler(config):
     }
     
     forecast_timestamp = datetime.utcnow().strftime("%Y%m%d%H%M")
-    temp_file_name = f"openmeteo-16day-hourly-forecast_{config["geolocation_name"]}_{forecast_timestamp}_utc.csv"
+    temp_file_name = f"openmeteo-16day-hourly-forecast_{config["geolocation_name"]}_{forecast_timestamp}.csv"
     temp_file_path = temp_file_dir+temp_file_name
     openmeteo_endpoint = "https://api.open-meteo.com/v1/forecast"
     print(openmeteo_endpoint)
@@ -90,7 +90,7 @@ def check_data_newness_handler(temp_file_path, temp_file_digest):
 
 def archive_raw_csv_data_handler(temp_file_path):
     temp_file_name = Path(temp_file_path).name.removesuffix(".csv")
-    forecast_name, geolocation_name, forecast_timestamp, _ = temp_file_name.split("_")
+    forecast_name, geolocation_name, forecast_timestamp = temp_file_name.split("_")
     dt = datetime.strptime(forecast_timestamp, "%Y%m%d%H%M")
 
     archive_bucket_name = "weather-lake-raw-archive"
@@ -99,7 +99,7 @@ def archive_raw_csv_data_handler(temp_file_path):
         f"year={dt.year}/"
         f"month={dt.month:02d}/"
         f"day={dt.day:02d}/"
-        f"{forecast_name}_{dt.hour:02d}{dt.minute:02d}_utc.csv"
+        f"{forecast_name}_{dt.hour:02d}{dt.minute:02d}.csv"
     )
     
     minio_hook = S3Hook(aws_conn_id="minio")
@@ -117,12 +117,20 @@ def transform_data_to_parquet_handler(object_keys):
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect("spark-submit", username="spark", password="spark")
 
+    raw_bucket = "weather-lake-raw-archive"
+    warehouse_bucket = "weather-lake"
+    object_keys = ",".join(object_keys)
+
+    object_keys_str = ",".join(object_keys)
     command = (
         "bash -lc '" \
         "/opt/spark/bin/spark-submit " \
         "--packages org.apache.hadoop:hadoop-aws:3.3.4 " \
         "--master spark://spark-master:7077 " \
-        "/opt/spark/apps/weather-lake-load.py'"
+        "/opt/spark/apps/weather-lake-load.py "
+        f"--raw-bucket {raw_bucket} "
+        f"--warehouse-bucket {warehouse_bucket} "
+        f"--object-keys {object_keys}'"
     )
     stdin, stdout, stderr = ssh.exec_command(command)
 

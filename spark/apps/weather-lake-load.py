@@ -1,15 +1,29 @@
+import argparse
 from pyspark.sql import SparkSession
+from pyspark.sql.functions import input_file_name, regexp_extract, col
+from pyspark.sql.types import IntegerType
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--raw-bucket", required=True)
+parser.add_argument("--warehouse-bucket", required=True)
+parser.add_argument("--object-keys", required=True)
+args = parser.parse_args()
+
+object_keys = args.object_keys.split(",")
+object_uris = [f"s3a://{args.raw_bucket}/{key}" for key in object_keys]
 
 spark = SparkSession.builder.appName("Weather-Lake-Load").getOrCreate()
 
-input_path = (
-    "s3a://weather-lake-raw-archive/Toronto/year=2025/month=10/day=11/"
-    "openmeteo-16day-hourly-forecast_1425_utc.csv"
+df = spark.read.option("header", True).csv(object_uris)
+df = (
+    df.withColumn("input_file", input_file_name())
+      .withColumn("geolocation", regexp_extract("input_file", r"weather-lake-raw-archive/([^/]+)/", 1))
+      .withColumn("year", regexp_extract("input_file", r"year=(\d{4})", 1).cast(IntegerType()))
+      .withColumn("month", regexp_extract("input_file", r"month=(\d{2})", 1).cast(IntegerType()))
+      .withColumn("day", regexp_extract("input_file", r"day=(\d{2})", 1).cast(IntegerType()))
 )
 
-df = spark.read.option("header", True).csv(input_path)
-
-output_path = "s3a://weather-lake/sample.parquet"
-df.write.mode("overwrite").parquet(output_path)
+df.write.mode("append").partitionBy("geolocation", "year", "month", "day") \
+    .parquet(f"s3a://{args.warehouse_bucket}/curated/")
 
 spark.stop()
