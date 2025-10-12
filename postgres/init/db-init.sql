@@ -13,7 +13,7 @@ GRANT USAGE ON SCHEMA weather_lake TO airflow;
 -- Create ETL config table, grant read to Airflow
 CREATE TABLE weather_lake.weather_lake_etl_config (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    geolocation_name TEXT NOT NULL UNIQUE,
+    location_name TEXT NOT NULL UNIQUE,
     latitude NUMERIC(9, 6) NOT NULL,
     longitude NUMERIC(9, 6) NOT NULL,
     temperature_2m BOOLEAN NOT NULL,
@@ -28,7 +28,7 @@ GRANT SELECT ON weather_lake.weather_lake_etl_config TO airflow;
 
 -- Insert records into ETL config table
 INSERT INTO weather_lake.weather_lake_etl_config (
-    geolocation_name,
+    location_name,
     latitude,
     longitude,
     temperature_2m,

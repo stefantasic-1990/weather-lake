@@ -17,13 +17,13 @@ spark = SparkSession.builder.appName("Weather-Lake-Load").getOrCreate()
 df = spark.read.option("header", True).csv(object_uris)
 df = (
     df.withColumn("input_file", input_file_name())
-      .withColumn("geolocation", regexp_extract("input_file", r"weather-lake-raw-archive/([^/]+)/", 1))
+      .withColumn("location_name", regexp_extract("input_file", r"location_name=([^/]+)/", 1))
       .withColumn("year", regexp_extract("input_file", r"year=(\d{4})", 1).cast(IntegerType()))
       .withColumn("month", regexp_extract("input_file", r"month=(\d{2})", 1).cast(IntegerType()))
       .withColumn("day", regexp_extract("input_file", r"day=(\d{2})", 1).cast(IntegerType()))
 )
 
-df.write.mode("append").partitionBy("geolocation", "year", "month", "day") \
+df.write.mode("append").partitionBy("location_name", "year", "month", "day") \
     .parquet(f"s3a://{args.warehouse_bucket}/curated/")
 
 spark.stop()

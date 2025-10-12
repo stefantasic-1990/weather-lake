@@ -29,11 +29,11 @@ def get_etl_configs_handler():
 def download_weather_data_handler(config):
     fields = ",".join([
         key for key, val in config.items() if val is True and key not in [
-            "id", "geolocation_name", "latitude", "longitude"
+            "id", "location_name", "latitude", "longitude"
         ]
     ])
     params = {
-        "geolocation_name": config["geolocation_name"],
+        "location_name": config["location_name"],
         "latitude": config["latitude"],
         "longitude": config["longitude"],
         "hourly": fields,
@@ -43,7 +43,7 @@ def download_weather_data_handler(config):
     }
     
     forecast_timestamp = datetime.utcnow().strftime("%Y%m%d%H%M")
-    temp_file_name = f"openmeteo-16day-hourly-forecast_{config["geolocation_name"]}_{forecast_timestamp}.csv"
+    temp_file_name = f"openmeteo-16day-hourly-forecast_{config["location_name"]}_{forecast_timestamp}.csv"
     temp_file_path = temp_file_dir+temp_file_name
     openmeteo_endpoint = "https://api.open-meteo.com/v1/forecast"
     print(openmeteo_endpoint)
@@ -90,12 +90,12 @@ def check_data_newness_handler(temp_file_path, temp_file_digest):
 
 def archive_raw_csv_data_handler(temp_file_path):
     temp_file_name = Path(temp_file_path).name.removesuffix(".csv")
-    forecast_name, geolocation_name, forecast_timestamp = temp_file_name.split("_")
+    forecast_name, location_name, forecast_timestamp = temp_file_name.split("_")
     dt = datetime.strptime(forecast_timestamp, "%Y%m%d%H%M")
 
     archive_bucket_name = "weather-lake-raw-archive"
     object_key = (
-        f"{geolocation_name}/"
+        f"location_name={location_name}/"
         f"year={dt.year}/"
         f"month={dt.month:02d}/"
         f"day={dt.day:02d}/"
