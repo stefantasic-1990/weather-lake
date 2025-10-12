@@ -81,7 +81,6 @@ services:
     <<: *spark-common
     environment:
       PYSPARK_PYTHON: /usr/bin/python3
-      SPARK_SUBMIT_OPTS: "-Duser.home=/opt/spark"
     depends_on:
       - spark-master
     user: root

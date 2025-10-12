@@ -2,6 +2,7 @@ import requests
 import hashlib
 import paramiko
 import logging
+from time import sleep
 from pathlib import Path
 from datetime import datetime
 from psycopg2.extras import RealDictCursor
@@ -117,30 +118,30 @@ def transform_data_to_parquet_handler(object_keys):
     ssh.connect("spark-submit", username="spark", password="spark")
 
     command = (
-        "/opt/spark/bin/spark-submit" \
-        "--packages org.apache.hadoop:hadoop-aws:3.3.4" \
-        "--master spark://spark-master:7077" \
-        "/opt/spark/apps/weather-lake-load.py"
+        "bash -lc '" \
+        "/opt/spark/bin/spark-submit " \
+        "--packages org.apache.hadoop:hadoop-aws:3.3.4 " \
+        "--master spark://spark-master:7077 " \
+        "/opt/spark/apps/weather-lake-load.py'"
     )
-
     stdin, stdout, stderr = ssh.exec_command(command)
 
-    info.logging("Executing Spark job...")
+    logging.info("Executing Spark job...")
     while not stdout.channel.exit_status_ready():
         if stdout.channel.recv_ready():
             chunk = stdout.channel.recv(4096).decode("utf-8")
-            info.logging(chunk)
+            logging.info(chunk)
 
         if stderr.channel.recv_stderr_ready():
             error_chunk = stderr.channel.recv_stderr(4096).decode("utf-8")
-            info.logging(error_chunk)
+            logging.info(error_chunk)
 
         sleep(0.5)
 
     exit_code = stdout.channel.recv_exit_status()
-    info.logging(stdout.read().decode("utf-8"))
-    info.logging(stderr.read().decode("utf-8"))
+    logging.info(stdout.read().decode("utf-8"))
+    logging.info(stderr.read().decode("utf-8"))
     ssh.close()
 
     if exit_code != 0:
-        AirflowFailException(f"Spark job failed to execute.")
+        raise AirflowFailException(f"Spark job failed to execute.")
