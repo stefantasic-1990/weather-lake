@@ -11,10 +11,6 @@ RUN apt-get update && \
     # Ensure started SSH sessions know the Java environment
     echo 'export JAVA_HOME=/opt/java/openjdk' >> /etc/profile && \
     echo 'export JAVA_VERSION=jdk-17.0.13+11' >> /etc/profile && \
-    echo 'export PATH=/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' >> /etc/profile && \
-    \
-    # Grant ownership of /home/spark to the spark user
-    chown -R spark:spark /home/spark && \
-    chmod -R 755 /home/spark
+    echo 'export PATH=/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' >> /etc/profile
 
 USER spark
