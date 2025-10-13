@@ -112,7 +112,7 @@ services:
         /opt/spark/sbin/start-thriftserver.sh \
         --master spark://spark-master:7077
     ports:
-      - "10001:10001"
+      - "10001:10000"
 
   spark-init:
     <<: *spark-common
