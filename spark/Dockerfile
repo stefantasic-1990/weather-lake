@@ -4,6 +4,7 @@ USER root
 RUN apt-get update && \
     apt-get install -y openssh-server netcat-openbsd && \
     rm -rf /var/lib/apt/lists/* && \
+    \
     mkdir /var/run/sshd && \
     echo 'spark:spark' | chpasswd && \
     echo "PermitRootLogin no" >> /etc/ssh/sshd_config && \
