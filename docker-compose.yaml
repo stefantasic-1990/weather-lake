@@ -87,9 +87,7 @@ services:
     user: root
     entrypoint: /bin/bash
     command: >
-      -c "chown -R spark:spark /home/spark &&
-          chmod -R 755 /home/spark &&
-          /usr/sbin/sshd -D &&
+      -c "/usr/sbin/sshd -D &&
           exec su spark -c 'sleep infinity'"
     ports:
       - "4040:4040"
@@ -144,7 +142,7 @@ services:
           "
 
   hive-metastore:
-    image: apache/hive:4.1.0
+    image: apache/hive:3.1.3
     ports:
       - "9083:9083"
     environment:

@@ -125,7 +125,6 @@ def transform_data_to_parquet_handler(object_keys):
     command = (
         "bash -lc '" \
         "/opt/spark/bin/spark-submit " \
-        "--packages org.apache.hadoop:hadoop-aws:3.3.4 " \
         "--master spark://spark-master:7077 " \
         "/opt/spark/apps/weather-lake-load.py "
         f"--raw-bucket {raw_bucket} "
