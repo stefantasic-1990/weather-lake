@@ -46,7 +46,6 @@ x-spark-common:
     - ${SPARK_PROJ_DIR}/config/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
     - ${SPARK_PROJ_DIR}/apps:/opt/spark/apps
     - ${HIVE_PROJ_DIR}/config/hive-site.xml:/opt/spark/conf/hive-site.xml:ro
-    - spark-ivy-cache:/home/spark/.ivy2
 
 services:
   spark-master:
@@ -130,9 +129,8 @@ services:
 
         /opt/spark/bin/spark-sql \
           --master local \
-          --conf spark.hadoop.hive.metastore.uris=thrift://hive-metastore:9083 \
           -e "
-            CREATE EXTERNAL TABLE IF NOT EXISTS weather_lake_silver (
+            CREATE EXTERNAL TABLE IF NOT EXISTS weather_lake (
               datetime_utc TIMESTAMP,
               temperature_2m_celsius DOUBLE,
               precipitation_mm DOUBLE,
@@ -387,4 +385,3 @@ services:
 volumes:
   postgres-db-volume:
   minio-volume:
-  spark-ivy-cache:
