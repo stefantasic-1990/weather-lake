@@ -104,10 +104,19 @@ services:
     command:
       - -c
       - |
+        mkdir -p /opt/spark/logs &&
         chown -R spark:spark /opt/spark/logs &&
         chmod -R 755 /opt/spark/logs &&
-        /opt/spark/sbin/start-thriftserver.sh \
-        --master spark://spark-master:7077
+
+        echo "==> Waiting for Hive Metastore..."
+        until nc -z hive-metastore 9083; do
+          sleep 3
+          echo "Waiting for hive-metastore:9083..."
+        done
+
+        echo "==> Metastore is up, starting Spark ThriftServer"
+        exec su spark -c "/opt/spark/sbin/start-thriftserver.sh \
+          --master spark://spark-master:7077"
     ports:
       - "10001:10000"
 
@@ -142,7 +151,7 @@ services:
           "
 
   hive-metastore:
-    image: apache/hive:3.1.3
+    image: apache/hive:4.1.0
     ports:
       - "9083:9083"
     environment:
