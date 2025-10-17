@@ -116,8 +116,8 @@ services:
         echo "==> Metastore is up, starting Spark ThriftServer"
         exec su spark -c "/opt/spark/sbin/start-thriftserver.sh \
           --master spark://spark-master:7077 \
-          --executor-cores 2 \
-          --total-executor-cores 2 \
+          --executor-cores 1 \
+          --total-executor-cores 1 \
           --executor-memory 1G \
           --conf spark.dynamicAllocation.enabled=false \
           --conf spark.executor.instances=1"
@@ -202,7 +202,6 @@ services:
 
         echo "==> Creating buckets"
         mc alias set myminio http://minio:9000 minioadmin minioadmin
-        mc mb -p myminio/weather-lake-raw-archive || true
         mc mb -p myminio/weather-lake || true
 
         echo "==> MinIO initialization complete."
