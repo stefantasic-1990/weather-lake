@@ -46,6 +46,7 @@ x-spark-common:
     - ${SPARK_PROJ_DIR}/config/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
     - ${SPARK_PROJ_DIR}/apps:/opt/spark/apps
     - ${HIVE_PROJ_DIR}/config/hive-site.xml:/opt/spark/conf/hive-site.xml:ro
+    - spark-artifacts:/artifacts
 
 services:
   spark-master:
@@ -154,12 +155,37 @@ services:
           "
 
   hive-metastore:
-    image: apache/hive:4.1.0
+    image: apache/hive:3.1.3
     ports:
       - "9083:9083"
     environment:
-      SERVICE_NAME: metastore
-      DB_DRIVER: postgres
+      - SERVICE_NAME=metastore
+      - DB_DRIVER=postgres
+      # - SKIP_SCHEMA_INIT=true
+    # user: root
+    # entrypoint: /bin/sh
+    # command:
+    #   - -c
+    #   - |
+    #       set -e
+
+    #       # 0) Get curl
+    #       apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+    #       # 1) Ensure S3A jars for Hive
+    #       curl -sSL -o /opt/hive/lib/hadoop-aws-3.4.1.jar https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.4.1/hadoop-aws-3.4.1.jar
+    #       curl -sSL -o /opt/hive/lib/aws-java-sdk-bundle-1.12.661.jar https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.661/aws-java-sdk-bundle-1.12.661.jar
+
+    #       # # 2) If schema exists, skip; else init
+    #       # if ! /opt/hive/bin/schematool -dbType postgres -info >/dev/null 2>&1; then
+    #       #   echo "Schema missing — initializing."
+    #       #   /opt/hive/bin/schematool -dbType postgres -initSchema
+    #       # else
+    #       #   echo "Schema exists — skipping initialization."
+    #       # fi
+
+    #       # # 3) Hand off to the image's original logic
+    #       # exec /entrypoint.sh
     depends_on:
       - postgres
       - minio
@@ -395,3 +421,4 @@ services:
 volumes:
   postgres-db-volume:
   minio-volume:
+  spark-artifacts:
