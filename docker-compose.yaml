@@ -176,16 +176,6 @@ services:
     #       curl -sSL -o /opt/hive/lib/hadoop-aws-3.4.1.jar https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.4.1/hadoop-aws-3.4.1.jar
     #       curl -sSL -o /opt/hive/lib/aws-java-sdk-bundle-1.12.661.jar https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.661/aws-java-sdk-bundle-1.12.661.jar
 
-    #       # # 2) If schema exists, skip; else init
-    #       # if ! /opt/hive/bin/schematool -dbType postgres -info >/dev/null 2>&1; then
-    #       #   echo "Schema missing — initializing."
-    #       #   /opt/hive/bin/schematool -dbType postgres -initSchema
-    #       # else
-    #       #   echo "Schema exists — skipping initialization."
-    #       # fi
-
-    #       # # 3) Hand off to the image's original logic
-    #       # exec /entrypoint.sh
     depends_on:
       - postgres
       - minio
@@ -193,6 +183,7 @@ services:
     volumes:
       - ${HIVE_PROJ_DIR}/config/hive-site.xml:/opt/hive/conf/hive-site.xml
       - ${HIVE_PROJ_DIR}/driver/postgresql-42.7.8.jar:/opt/hive/lib/postgres.jar
+      - ${HIVE_PROJ_DIR}/entrypoint.sh:/entrypoint.sh
 
   minio:
     image: minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1
