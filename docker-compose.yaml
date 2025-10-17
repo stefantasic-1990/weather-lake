@@ -155,27 +155,12 @@ services:
           "
 
   hive-metastore:
-    image: apache/hive:3.1.3
+    build: ${HIVE_PROJ_DIR}
     ports:
       - "9083:9083"
     environment:
       - SERVICE_NAME=metastore
       - DB_DRIVER=postgres
-      # - SKIP_SCHEMA_INIT=true
-    # user: root
-    # entrypoint: /bin/sh
-    # command:
-    #   - -c
-    #   - |
-    #       set -e
-
-    #       # 0) Get curl
-    #       apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
-
-    #       # 1) Ensure S3A jars for Hive
-    #       curl -sSL -o /opt/hive/lib/hadoop-aws-3.4.1.jar https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.4.1/hadoop-aws-3.4.1.jar
-    #       curl -sSL -o /opt/hive/lib/aws-java-sdk-bundle-1.12.661.jar https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.661/aws-java-sdk-bundle-1.12.661.jar
-
     depends_on:
       - postgres
       - minio
