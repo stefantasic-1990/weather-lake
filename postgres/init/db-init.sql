@@ -11,7 +11,7 @@ CREATE SCHEMA weather_lake AUTHORIZATION postgres;
 GRANT USAGE ON SCHEMA weather_lake TO airflow;
 
 -- Create ETL config table, grant read to Airflow
-CREATE TABLE weather_lake.weather_lake_etl_config (
+CREATE TABLE weather_lake.weather_lake_ingestion_config (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     location_name TEXT NOT NULL UNIQUE,
     latitude NUMERIC(9, 6) NOT NULL,
@@ -24,10 +24,10 @@ CREATE TABLE weather_lake.weather_lake_etl_config (
     pressure_msl BOOLEAN NOT NULL,
     meta_created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-GRANT SELECT ON weather_lake.weather_lake_etl_config TO airflow;
+GRANT SELECT ON weather_lake.weather_lake_ingestion_config TO airflow;
 
 -- Insert records into ETL config table
-INSERT INTO weather_lake.weather_lake_etl_config (
+INSERT INTO weather_lake.weather_lake_ingestion_config (
     location_name,
     latitude,
     longitude,

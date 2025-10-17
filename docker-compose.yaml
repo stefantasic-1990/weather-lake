@@ -75,8 +75,6 @@ services:
     environment:
       SPARK_WORKER_CORES: 2
       SPARK_WORKER_MEMORY: 2g
-    ports:
-      - "8081:8081"
 
   spark-submit:
     <<: *spark-common
@@ -116,7 +114,12 @@ services:
 
         echo "==> Metastore is up, starting Spark ThriftServer"
         exec su spark -c "/opt/spark/sbin/start-thriftserver.sh \
-          --master spark://spark-master:7077"
+          --master spark://spark-master:7077 \
+          --executor-cores 2 \
+          --total-executor-cores 2 \
+          --executor-memory 1G \
+          --conf spark.dynamicAllocation.enabled=false \
+          --conf spark.executor.instances=1"
     ports:
       - "10001:10000"
 
