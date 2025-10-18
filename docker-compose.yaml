@@ -142,16 +142,15 @@ services:
           --master local \
           -e "
             CREATE EXTERNAL TABLE IF NOT EXISTS weather_forecast (
-              datetime_utc TIMESTAMP,
-              temperature_2m_celsius DOUBLE,
-              precipitation_mm DOUBLE,
-              relative_humidity_2m_percentage DOUBLE,
-              pressure_msl_hpa DOUBLE,
-              wind_speed_10m_kmh DOUBLE
+              raw_object_uri STRING,
+              capture_datetime_utc TIMESTAMP,
+              valid_datetime_utc TIMESTAMP,
+              valid_hour INT,
+              temperature_2m_celsius DOUBLE
             )
-            PARTITIONED BY (location STRING, year INT, month INT, day INT)
+            PARTITIONED BY (location_name STRING, valid_year INT, valid_month INT, valid_day INT)
             STORED AS PARQUET
-            LOCATION 's3a://weather-lake/weather_forecast/';
+            LOCATION 's3a://weather-lake/forecast_curated/';
           "
 
   hive-metastore:

@@ -82,23 +82,9 @@ df = df.select(
 
 df.show(5, truncate=False)
 
-target_write_prefix = f"s3a://{args.weatherlake_bucket_name}/curated/"
+target_write_prefix = f"s3a://{args.weatherlake_bucket_name}/forecast_curated/"
 df.write.mode("append").partitionBy("location_name", "valid_year", "valid_month", "valid_day") \
     .parquet(target_write_prefix)
-
-spark.sql(f"""
-    CREATE EXTERNAL TABLE IF NOT EXISTS weather_forecast (
-        forecast_datetime_utc STRING,
-        pressure_msl_hpa DOUBLE,
-        precipitation_mm DOUBLE,
-        temperature_2m_celsius DOUBLE,
-        wind_speed_10m_kmh DOUBLE,
-        relative_humidity_2m_percentage DOUBLE
-    )
-    PARTITIONED BY (location_name STRING, year INT, month INT, day INT)
-    STORED AS PARQUET
-    LOCATION '{target_write_prefix}'
-""")
 
 spark.sql("MSCK REPAIR TABLE weather_forecast")
 
