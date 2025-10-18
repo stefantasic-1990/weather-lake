@@ -92,8 +92,8 @@ def archive_raw_forecast_data_handler(forecast_file_path, forecast_file_digest):
         f"capture_month={dt.month:02d}/"
         f"capture_day={dt.day:02d}/"
         f"capture_hour={dt.hour:02d}/"
-        f"capture_minute={dt.minute:02d}"
-        f"{forecast_name}.json"
+        f"capture_minute={dt.minute:02d}/"
+        f"{forecast_file_name}.json"
     )
     
     minio_hook = S3Hook(aws_conn_id="minio")

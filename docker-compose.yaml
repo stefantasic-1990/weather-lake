@@ -142,7 +142,7 @@ services:
           --master local \
           -e "
             CREATE EXTERNAL TABLE IF NOT EXISTS weather_forecast (
-              raw_object_uri STRING,
+              raw_object_key STRING,
               capture_datetime_utc TIMESTAMP,
               valid_datetime_utc TIMESTAMP,
               valid_hour INT,

@@ -1,6 +1,6 @@
 import argparse
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import input_file_name, regexp_extract, col, explode, arrays_zip, to_timestamp, concat_ws, lit, year, month, dayofmonth, hour, col
+from pyspark.sql.functions import input_file_name, regexp_extract, col, explode, arrays_zip, to_timestamp, concat_ws, lit, year, month, dayofmonth, hour, col, split, element_at
 from pyspark.sql.types import IntegerType
 
 parser = argparse.ArgumentParser()
@@ -31,6 +31,9 @@ for source_field_name, target_field_name in field_rename_map.items():
     df = df.withColumnRenamed(source_field_name, target_field_name)
 
 df = df.withColumn("raw_object_uri", input_file_name())
+
+df = df.withColumn("raw_object_key", element_at(split(input_file_name(), "/"), -1))
+
 
 df = df.withColumn("location_name", regexp_extract(col("raw_object_uri"), r"location_name=([^/]+)/", 1))
 
@@ -69,7 +72,7 @@ df = (
 )
 
 df = df.select(
-    "raw_object_uri",
+    "raw_object_key",
     "location_name",
     "capture_datetime_utc",
     "valid_datetime_utc",
