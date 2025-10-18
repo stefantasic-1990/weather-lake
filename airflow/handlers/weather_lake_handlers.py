@@ -86,12 +86,13 @@ def archive_raw_forecast_data_handler(forecast_file_path, forecast_file_digest):
     dt = datetime.strptime(capture_timestamp, "%Y%m%d%H%M")
 
     forecast_object_key = (
-        "raw/"
+        "forecast_raw/"
         f"location_name={location_name}/"
-        f"year={dt.year}/"
-        f"month={dt.month:02d}/"
-        f"day={dt.day:02d}/"
-        f"hour={dt.hour:02d}/"
+        f"capture_year={dt.year}/"
+        f"capture_month={dt.month:02d}/"
+        f"capture_day={dt.day:02d}/"
+        f"capture_hour={dt.hour:02d}/"
+        f"capture_minute={dt.minute:02d}"
         f"{forecast_name}.json"
     )
     

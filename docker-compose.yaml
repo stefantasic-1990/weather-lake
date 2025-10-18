@@ -141,7 +141,7 @@ services:
         /opt/spark/bin/spark-sql \
           --master local \
           -e "
-            CREATE EXTERNAL TABLE IF NOT EXISTS weather_lake (
+            CREATE EXTERNAL TABLE IF NOT EXISTS weather_forecast (
               datetime_utc TIMESTAMP,
               temperature_2m_celsius DOUBLE,
               precipitation_mm DOUBLE,
@@ -151,7 +151,7 @@ services:
             )
             PARTITIONED BY (location STRING, year INT, month INT, day INT)
             STORED AS PARQUET
-            LOCATION 's3a://weather-lake/';
+            LOCATION 's3a://weather-lake/weather_forecast/';
           "
 
   hive-metastore:

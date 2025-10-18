@@ -1,6 +1,6 @@
 import argparse
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import input_file_name, regexp_extract, col
+from pyspark.sql.functions import input_file_name, regexp_extract, col, explode, arrays_zip, to_timestamp, concat_ws, lit, year, month, dayofmonth, hour, col
 from pyspark.sql.types import IntegerType
 
 parser = argparse.ArgumentParser()
@@ -20,28 +20,70 @@ spark = (
 
 df = spark.read.option("header", True).json(object_uris)
 
-df = (
-    df.withColumn("input_file", input_file_name())
-      .withColumn("location_name", regexp_extract("input_file", r"location_name=([^/]+)/", 1))
-      .withColumn("year", regexp_extract("input_file", r"year=(\d{4})", 1).cast(IntegerType()))
-      .withColumn("month", regexp_extract("input_file", r"month=(\d{2})", 1).cast(IntegerType()))
-      .withColumn("day", regexp_extract("input_file", r"day=(\d{2})", 1).cast(IntegerType()))
-)
-
 field_rename_map = {
-    "time": "forecast_datetime_utc",
     "pressure_msl (hPa)": "pressure_msl_hpa",
     "precipitation (mm)": "precipitation_mm",
     "temperature_2m (°C)": "temperature_2m_celsius",
     "wind_speed_10m (km/h)": "wind_speed_10m_kmh",
     "relative_humidity_2m (%)": "relative_humidity_2m_percentage",
 }
-
 for source_field_name, target_field_name in field_rename_map.items():
     df = df.withColumnRenamed(source_field_name, target_field_name)
 
+df = df.withColumn("raw_object_uri", input_file_name())
+
+df = df.withColumn("location_name", regexp_extract(col("raw_object_uri"), r"location_name=([^/]+)/", 1))
+
+df = df.withColumn("capture_datetime_utc", 
+        to_timestamp(
+            concat_ws(" ",
+                concat_ws(
+                    "-",
+                    regexp_extract(col("raw_object_uri"), r"year=(\d{4})", 1),
+                    regexp_extract(col("raw_object_uri"), r"month=(\d{2})", 1),
+                    regexp_extract(col("raw_object_uri"), r"day=(\d{2})", 1)
+                ),
+                concat_ws(
+                    ":",
+                    regexp_extract(col("raw_object_uri"), r"hour=(\d{2})", 1),
+                    regexp_extract(col("raw_object_uri"), r"minute=(\d{2})", 1),
+                    lit("00")
+                )
+            ),
+            "yyyy-MM-dd HH:mm:ss"
+        )
+    )
+
+df = (df.withColumn("hourly_fields_zipped", arrays_zip("hourly.time", "hourly.temperature_2m"))
+       .withColumn("hourly_fields_exploded", explode("hourly_fields_zipped"))
+       .withColumn("valid_datetime_utc", to_timestamp(col("hourly_fields_exploded.time")))
+       .withColumn("temperature_2m_celsius", col("hourly_fields_exploded.temperature_2m"))
+)
+
+df = (
+    df
+    .withColumn("valid_year", year(col("valid_datetime_utc")))
+    .withColumn("valid_month", month(col("valid_datetime_utc")))
+    .withColumn("valid_day", dayofmonth(col("valid_datetime_utc")))
+    .withColumn("valid_hour", hour(col("valid_datetime_utc")))
+)
+
+df = df.select(
+    "raw_object_uri",
+    "location_name",
+    "capture_datetime_utc",
+    "valid_datetime_utc",
+    "valid_year",
+    "valid_month",
+    "valid_day",
+    "valid_hour",
+    "temperature_2m_celsius"
+)
+
+df.show(5, truncate=False)
+
 target_write_prefix = f"s3a://{args.weatherlake_bucket_name}/curated/"
-df.write.mode("append").partitionBy("location_name", "year", "month", "day") \
+df.write.mode("append").partitionBy("location_name", "valid_year", "valid_month", "valid_day") \
     .parquet(target_write_prefix)
 
 spark.sql(f"""
