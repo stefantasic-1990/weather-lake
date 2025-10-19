@@ -6,6 +6,10 @@ CREATE DATABASE airflow OWNER airflow;
 CREATE USER hive WITH PASSWORD 'hivepass';
 CREATE DATABASE metastore OWNER hive;
 
+-- Create Supserset user and metastore database
+CREATE USER superset WITH PASSWORD 'superset';
+CREATE DATABASE superset OWNER superset;
+
 -- Create ETL schema, grant usage to Airflow
 CREATE SCHEMA weather_lake AUTHORIZATION postgres;
 GRANT USAGE ON SCHEMA weather_lake TO airflow;

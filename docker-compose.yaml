@@ -38,7 +38,7 @@ x-airflow-common:
 
 x-spark-common:
   &spark-common
-  build: ./spark
+  build: ${SPARK_PROJ_DIR}
   environment:
     SPARK_LOG_DIR: /opt/spark/logs
   volumes:
@@ -49,6 +49,73 @@ x-spark-common:
     - spark-artifacts:/artifacts
 
 services:
+  superset:
+    image: apache/superset:5.0.0
+    # build: ${SUPERSET_PROJ_DIR}
+    environment:
+      SUPERSET_SECRET_KEY: dev_secret_key
+      ADMIN_USERNAME: supersetadmin
+      ADMIN_FIRST_NAME: Superset
+      ADMIN_LAST_NAME: Admin
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: supersetadmin
+      HIVE_URI: hive://superset@spark-thrift:10001/default?auth=NOSASL&transport_mode=http&http_path=cliservice
+    user: root
+    volumes:
+      - ${SUPERSET_PROJ_DIR}/home:/app/superset_home
+      - ${SUPERSET_PROJ_DIR}/seed:/app/seed
+      - ${SUPERSET_PROJ_DIR}/docker:/app/docker
+    ports:
+      - "8088:8088"
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        set -e
+
+        if [ -f "/app/docker/requirements.txt" ]; then
+          echo "Installing local overrides"
+          if command -v uv > /dev/null 2>&1; then
+            uv pip install --no-cache-dir -r "/app/docker/requirements.txt"
+          else
+            pip install --no-cache-dir -r "/app/docker/requirements.txt"
+          fi
+        else
+          echo "Skipping local overrides"
+        fi
+
+        DB_PATH="/app/superset_home/superset.db"
+
+        if [ ! -f "$${DB_PATH}" ]; then
+          echo "No existing metadata DB found. Seeding fresh Superset SQLite database..."
+          superset db upgrade
+
+          # Create admin user only once
+          if ! superset fab list-users | grep -q "$${ADMIN_USERNAME}"; then
+            echo "Creating admin user..."
+            superset fab create-admin \
+              --username "$${ADMIN_USERNAME}" \
+              --firstname "$${ADMIN_FIRST_NAME}" \
+              --lastname "$${ADMIN_LAST_NAME}" \
+              --email "$${ADMIN_EMAIL}" \
+              --password "$${ADMIN_PASSWORD}"
+          fi
+
+          superset init
+
+          # optional: import dashboards if provided
+          if [ -f /app/seed/dashboards.zip ]; then
+            echo "Importing sample dashboards..."
+            superset import-dashboards -p /app/seed/dashboards.zip || true
+          fi
+        else
+          echo "Existing SQLite metadata found. Skipping seeding."
+        fi
+
+        echo "Starting Superset..."
+        exec superset run -p 8088 --host 0.0.0.0
+    restart: unless-stopped
+
   spark-master:
     <<: *spark-common
     command: >
