@@ -80,3 +80,17 @@ cd docker/
 ls
 which pip
 exit
+pip show pyhive
+python
+/app/.venv/bin/activate
+source /app/.venv/bin/activate
+python
+pip list
+exit
+source /app/.venv/bin/activate
+pip list
+pip install [200~PyHive[spark]~
+pip install PyHive[spark]
+clear
+pip list
+exit

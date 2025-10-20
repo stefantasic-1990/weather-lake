@@ -59,6 +59,7 @@ services:
       ADMIN_EMAIL: admin@example.com
       ADMIN_PASSWORD: supersetadmin
       HIVE_URI: hive://superset@spark-thrift:10001/default?auth=NOSASL&transport_mode=http&http_path=cliservice
+      HIVE_SERVER2_THRIFT_RESULTSET_DEFAULT_FETCH_SIZE: 1000
     user: root
     volumes:
       - ${SUPERSET_PROJ_DIR}/home:/app/superset_home
