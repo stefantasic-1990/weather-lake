@@ -1,3 +1,5 @@
+#!/bin/bash
+
 set -x
 
 : ${DB_DRIVER:=derby}
