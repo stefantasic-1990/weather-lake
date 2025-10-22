@@ -1,5 +1,6 @@
 import requests
 import hashlib
+import json
 import paramiko
 import logging
 from time import sleep
@@ -46,17 +47,22 @@ def get_forecast_data_handler(ingestion_config):
     forecast_file_name = f"openmeteo-16day-hourly-forecast_{ingestion_config["location_name"]}_{capture_timestamp}.json"
     forecast_file_path = temp_file_dir + forecast_file_name
 
-    hasher=hashlib.sha256()
     openmeteo_endpoint = "https://api.open-meteo.com/v1/forecast"
-    with requests.get(openmeteo_endpoint, params=params, stream=True, timeout=60) as req:
-        req.raise_for_status()
-        with open(forecast_file_path, "wb") as temp_file:
-            for chunk in req.iter_content(chunk_size=8192):
-                if not chunk:
-                    continue
-                hasher.update(chunk)
-                temp_file.write(chunk)
+    response = requests.get(openmeteo_endpoint, params=params, timeout=60)
+    response.raise_for_status()
+    
+    data = response.json()
+    if "generationtime_ms" in data:
+        data.pop("generationtime_ms")
+    else:
+        AirflowSkipException("Generation time missing from incoming data.")
 
+    with open(forecast_file_path, "w") as temp_file:
+        json.dump(data, temp_file)
+
+    hasher = hashlib.sha256()
+    normalized = json.dumps(data, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    hasher.update(normalized)
     forecast_file_digest = hasher.hexdigest()
     
     return {"forecast_file_path": forecast_file_path, "forecast_file_digest": forecast_file_digest}
@@ -76,13 +82,13 @@ def check_forecast_data_newness_handler(forecast_file_path, forecast_file_digest
             duplicate_forecast = curs.fetchone()[0]
 
             if duplicate_forecast is True:
-                raise AirflowSkipException("No new data for this ETL config. Skipping...")
+                raise AirflowSkipException("No new data for this ingestion config. Skipping...")
 
     return {"forecast_file_path": forecast_file_path, "forecast_file_digest": forecast_file_digest}
 
 def archive_raw_forecast_data_handler(forecast_file_path, forecast_file_digest):
-    forecast_file_name = Path(forecast_file_path).name.removesuffix(".json")
-    forecast_name, location_name, capture_timestamp = forecast_file_name.split("_")
+    forecast_file_name = Path(forecast_file_path).name
+    forecast_name, location_name, capture_timestamp = forecast_file_name.removesuffix(".json").split("_")
     dt = datetime.strptime(capture_timestamp, "%Y%m%d%H%M")
 
     forecast_object_key = (
@@ -93,7 +99,7 @@ def archive_raw_forecast_data_handler(forecast_file_path, forecast_file_digest):
         f"capture_day={dt.day:02d}/"
         f"capture_hour={dt.hour:02d}/"
         f"capture_minute={dt.minute:02d}/"
-        f"{forecast_file_name}.json"
+        f"{forecast_file_name}"
     )
     
     minio_hook = S3Hook(aws_conn_id="minio")
@@ -103,12 +109,14 @@ def archive_raw_forecast_data_handler(forecast_file_path, forecast_file_digest):
         bucket_name=weatherlake_bucket_name,
         replace=True
     )
-    
-    # forecast_file_path = Path(temp_file_path).name
-    # curs.execute(f"""
-    #     INSERT INTO weather_lake.weather_lake_ingestion_log (file_name, file_digest)
-    #     VALUES (%s, %s);
-    # """, (forecast_file_path, forecast_file_digest))
+
+    pg_hook = PostgresHook(postgres_conn_id="postgres", schema="weather_lake")
+    with pg_hook.get_conn() as conn:
+        with conn.cursor() as curs:
+            curs.execute(f"""
+                INSERT INTO weather_lake.weather_lake_ingestion_log (file_name, file_digest)
+                VALUES ('{forecast_file_name}', '{forecast_file_digest}');
+            """)
 
     return forecast_object_key
 

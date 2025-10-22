@@ -4,7 +4,7 @@ from datetime import datetime
 
 @dag(
     start_date=datetime(2025, 1, 1),
-    schedule=None,
+    schedule="0 * * * *",
     catchup=False,
 )
 def weather_lake_ingestion():
