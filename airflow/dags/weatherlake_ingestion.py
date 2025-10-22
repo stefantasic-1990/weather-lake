@@ -1,11 +1,24 @@
+from datetime import timedelta
 from airflow.sdk import dag, task
-from handlers import weather_lake_handlers as hand
+from airflow.utils.trigger_rule import TriggerRule
+from handlers import weatherlake_ingestion_handlers as hand
 from datetime import datetime
 
+default_args = {
+    "depends_on_past": False,
+    "retries": 1,
+    "retry_delay": timedelta(seconds=1),
+    "trigger_rule": TriggerRule.all_done_min_one_success
+}
+
 @dag(
+    dag_id="WEATHERLAKE_INGESTION",
+    default_args=default_args,
     start_date=datetime(2025, 1, 1),
     schedule="0 * * * *",
     catchup=False,
+    max_active_runs=1,
+    max_active_tasks=10
 )
 def weather_lake_ingestion():
 

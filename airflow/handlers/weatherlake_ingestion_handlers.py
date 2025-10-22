@@ -4,7 +4,7 @@ import json
 import logging
 from time import sleep
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from psycopg2.extras import RealDictCursor
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
