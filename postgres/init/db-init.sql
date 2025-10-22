@@ -2,11 +2,11 @@
 CREATE USER airflow WITH PASSWORD 'airflow';
 CREATE DATABASE airflow OWNER airflow;
 
--- Create Hive user and metastore database
+-- Create Hive user and database
 CREATE USER hive WITH PASSWORD 'hivepass';
 CREATE DATABASE metastore OWNER hive;
 
--- Create Supserset user and metastore database
+-- Create Supserset user and database
 CREATE USER superset WITH PASSWORD 'superset';
 CREATE DATABASE superset OWNER superset;
 
@@ -15,7 +15,7 @@ CREATE SCHEMA weather_lake AUTHORIZATION postgres;
 GRANT USAGE ON SCHEMA weather_lake TO airflow;
 
 -- Create ETL config table, grant read to Airflow
-CREATE TABLE weather_lake.weather_lake_ingestion_config (
+CREATE TABLE weather_lake.ingestion_config (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     location_name TEXT NOT NULL UNIQUE,
     latitude NUMERIC(9, 6) NOT NULL,
@@ -26,9 +26,10 @@ CREATE TABLE weather_lake.weather_lake_ingestion_config (
     wind_speed_10m BOOLEAN NOT NULL,
     wind_direction_10m BOOLEAN NOT NULL,
     pressure_msl BOOLEAN NOT NULL,
-    meta_created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    meta_created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    meta_updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-GRANT SELECT ON weather_lake.weather_lake_ingestion_config TO airflow;
+GRANT SELECT ON weather_lake.ingestion_config TO airflow;
 
 -- Insert records into ETL config table
 INSERT INTO weather_lake.weather_lake_ingestion_config (
@@ -47,11 +48,12 @@ VALUES
     ('Vancouver', 49.2497, -123.1207, TRUE, TRUE, TRUE, FALSE, FALSE, TRUE),
     ('Calgary', 51.0501, -114.0853, TRUE, TRUE, TRUE, TRUE, FALSE, TRUE);
 
--- Create ETL data file log table, grant read and insert to Airflow
-CREATE TABLE weather_lake.weather_lake_ingestion_log (
+-- Create ETL ingestion log table, grant read and insert to Airflow
+CREATE TABLE weather_lake.ingestion_log (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     file_name TEXT NOT NULL UNIQUE,
     file_digest TEXT NOT NULL UNIQUE,
-    meta_created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    meta_created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    meta_updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 GRANT SELECT, INSERT ON weather_lake.weather_lake_ingestion_log TO airflow;
