@@ -17,6 +17,7 @@ x-airflow-common:
     AIRFLOW_CONN_MINIO: 's3://minioadmin:minioadmin@minio:9000?endpoint_url=http%3A%2F%2Fminio%3A9000'
     AIRFLOW_CONN_POSTGRES: 'postgresql+psycopg2://airflow:airflow@postgres:5432/postgres'
     AIRFLOW_CONN_SPARK: 'spark://spark%3A%2F%2Fspark-master:7077//?__extra__=%7B%7D'
+    AIRFLOW_CONN_SPARK_SUBMIT: 'ssh://spark:spark@spark-submit:22'
     PYTHONPATH: /opt/airflow
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
   volumes:

@@ -1,7 +1,6 @@
 import requests
 import hashlib
 import json
-import paramiko
 import logging
 from time import sleep
 from pathlib import Path
@@ -9,10 +8,12 @@ from datetime import datetime
 from psycopg2.extras import RealDictCursor
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.providers.ssh.hooks.ssh import SSHHook
 from airflow.providers.apache.spark.hooks.spark_submit import SparkSubmitHook
 from airflow.exceptions import AirflowSkipException, AirflowFailException
 
 AWS_CONN_ID = "minio"
+SPARK_SSH_CONN_ID = "spark_submit"
 POSTGRES_CONN_ID = "postgres"
 POSTGRES_SCHEMA = "weather_lake"
 DATA_LAKE_BUCKET = "weather-lake"
@@ -125,40 +126,35 @@ def archive_raw_forecast_data_handler(file_path, file_digest):
     return object_key
 
 def process_forecast_data_handler(object_keys):
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect("spark-submit", username="spark", password="spark")
+    ssh = SSHHook(ssh_conn_id=SPARK_SSH_CONN_ID)
+    with ssh.get_conn() as conn:
+        object_keys = ",".join(object_keys)
+        spark_command = (
+            "bash -lc '"
+            "/opt/spark/bin/spark-submit "
+            "--master spark://spark-master:7077 "
+            "--conf spark.executor.instances=1 "
+            "/opt/spark/apps/weather-lake-load.py "
+            f"--weatherlake-bucket-name {DATA_LAKE_BUCKET} "
+            f"--forecast-object-keys {object_keys}'"
+        )
 
-    object_keys = ",".join(object_keys)
+        logging.info("Executing Spark job...")
+        stdin, stdout, stderr = conn.exec_command(spark_command)
+        while not stdout.channel.exit_status_ready():
+            if stdout.channel.recv_ready():
+                chunk = stdout.channel.recv(4096).decode("utf-8")
+                logging.info(chunk)
 
-    object_keys_str = ",".join(object_keys)
-    spark_command = (
-        "bash -lc '"
-        "/opt/spark/bin/spark-submit "
-        "--master spark://spark-master:7077 "
-        "--conf spark.executor.instances=1 "
-        "/opt/spark/apps/weather-lake-load.py "
-        f"--weatherlake-bucket-name {weatherlake_bucket_name} "
-        f"--forecast-object-keys {object_keys}'"
-    )
+            if stderr.channel.recv_stderr_ready():
+                error_chunk = stderr.channel.recv_stderr(4096).decode("utf-8")
+                logging.info(error_chunk)
 
-    logging.info("Executing Spark job...")
-    stdin, stdout, stderr = ssh.exec_command(spark_command)
-    while not stdout.channel.exit_status_ready():
-        if stdout.channel.recv_ready():
-            chunk = stdout.channel.recv(4096).decode("utf-8")
-            logging.info(chunk)
-
-        if stderr.channel.recv_stderr_ready():
-            error_chunk = stderr.channel.recv_stderr(4096).decode("utf-8")
-            logging.info(error_chunk)
-
-        sleep(0.5)
+            sleep(0.5)
 
     exit_code = stdout.channel.recv_exit_status()
     logging.info(stdout.read().decode("utf-8"))
     logging.info(stderr.read().decode("utf-8"))
-    ssh.close()
 
     if exit_code != 0:
         raise AirflowFailException(f"Spark job failed to execute.")
