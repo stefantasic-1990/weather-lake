@@ -24,19 +24,21 @@ def get_ingestion_configs_handler():
     pg_hook = PostgresHook(postgres_conn_id=POSTGRES_CONN_ID)
     with pg_hook.get_conn() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-            cursor.execute(f"""
-                SELECT 
-                    location_name,
-                    latitude,
-                    longitude,
-                    temperature_2m,
-                    relative_humidity_2m,
-                    precipitation,
-                    wind_speed_10m,
-                    wind_direction_10m,
-                    pressure_msl
-                FROM {POSTGRES_SCHEMA}.ingestion_config;
-            """)
+            cursor.execute(
+                f"""
+                    SELECT 
+                        location_name,
+                        latitude,
+                        longitude,
+                        temperature_2m,
+                        relative_humidity_2m,
+                        precipitation,
+                        wind_speed_10m,
+                        wind_direction_10m,
+                        pressure_msl
+                    FROM {POSTGRES_SCHEMA}.ingestion_config;
+                """
+            )
             ingestion_configs = cursor.fetchall()
 
     return ingestion_configs
@@ -77,16 +79,18 @@ def check_forecast_data_newness_handler(file_path, file_digest):
     pg_hook = PostgresHook(postgres_conn_id=POSTGRES_CONN_ID)
     with pg_hook.get_conn() as conn:
         with conn.cursor() as curs:
-            curs.execute(f"""
-                SELECT EXISTS (
-                    SELECT 1
-                    FROM {POSTGRES_SCHEMA}.ingestion_log
-                    WHERE file_digest = '{file_digest}'
-                    AND meta_created_at >= now() - interval '24 hours'
-                );
-            """)
+            curs.execute(
+                f"""
+                    SELECT EXISTS (
+                        SELECT 1
+                        FROM {POSTGRES_SCHEMA}.ingestion_log
+                        WHERE file_digest = %s
+                        AND meta_created_at >= now() - interval '24 hours'
+                    );
+                """,
+                (file_digest)
+            )
             duplicate_forecast = curs.fetchone()[0]
-
             if duplicate_forecast is True:
                 raise AirflowSkipException("No new data for this ingestion config. Skipping...")
 
@@ -118,10 +122,13 @@ def archive_raw_forecast_data_handler(file_path, file_digest):
     pg_hook = PostgresHook(postgres_conn_id=POSTGRES_CONN_ID)
     with pg_hook.get_conn() as conn:
         with conn.cursor() as curs:
-            curs.execute(f"""
-                INSERT INTO {POSTGRES_SCHEMA}.weather_lake_ingestion_log (file_name, file_digest)
-                VALUES ('{file_name}', '{file_digest}');
-            """)
+            curs.execute(
+                f"""
+                    INSERT INTO {POSTGRES_SCHEMA}.ingestion_log (file_name, file_digest)
+                    VALUES (%s, %s);
+                """,
+                (file_name, file_digest)
+            )
 
     return object_key
 
@@ -144,17 +151,17 @@ def process_forecast_data_handler(object_keys):
         while not stdout.channel.exit_status_ready():
             if stdout.channel.recv_ready():
                 chunk = stdout.channel.recv(4096).decode("utf-8")
-                logging.info(chunk)
+                logging.info("Spark STDOUT:\n%s", chunk)
 
             if stderr.channel.recv_stderr_ready():
                 error_chunk = stderr.channel.recv_stderr(4096).decode("utf-8")
-                logging.info(error_chunk)
+                logging.info("Spark STDERR:\n%s", error_chunk)
 
             sleep(0.5)
 
     exit_code = stdout.channel.recv_exit_status()
-    logging.info(stdout.read().decode("utf-8"))
-    logging.info(stderr.read().decode("utf-8"))
+    logging.info("Spark STDOUT:\n%s", stdout.read().decode("utf-8"))
+    logging.info("Spark STDERR:\n%s", stderr.read().decode("utf-8"))
 
     if exit_code != 0:
         raise AirflowFailException(f"Spark job failed to execute.")
