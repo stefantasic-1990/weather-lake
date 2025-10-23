@@ -20,7 +20,7 @@ DATA_LAKE_BUCKET = "weather-lake"
 TMP_FILE_DIR = "/opt/airflow/temp/"
 API_ENDPOINT = "https://api.open-meteo.com/v1/forecast"
 
-def get_ingestion_configs_handler():
+def get_ingestion_configs():
     pg_hook = PostgresHook(postgres_conn_id=POSTGRES_CONN_ID)
     with pg_hook.get_conn() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cursor:
@@ -43,7 +43,7 @@ def get_ingestion_configs_handler():
 
     return ingestion_configs
 
-def get_forecast_data_handler(ingestion_config):
+def get_forecast_data(ingestion_config):
     data_fields = ",".join(
         key for key, val in ingestion_config.items()
         if val and key not in ["location_name", "latitude", "longitude"]
@@ -75,7 +75,7 @@ def get_forecast_data_handler(ingestion_config):
     
     return {"file_path": file_path, "file_digest": file_digest}
 
-def check_forecast_data_newness_handler(file_path, file_digest):
+def check_forecast_data_newness(file_path, file_digest):
     pg_hook = PostgresHook(postgres_conn_id=POSTGRES_CONN_ID)
     with pg_hook.get_conn() as conn:
         with conn.cursor() as curs:
@@ -96,7 +96,7 @@ def check_forecast_data_newness_handler(file_path, file_digest):
 
     return {"file_path": file_path, "file_digest": file_digest}
 
-def archive_raw_forecast_data_handler(file_path, file_digest):
+def archive_raw_forecast_data(file_path, file_digest):
     file_name = Path(file_path).name
     _, location_name, capture_timestamp = file_name.removesuffix(".json").split("_")
     dt = datetime.strptime(capture_timestamp, "%Y%m%d%H%M")
@@ -132,7 +132,7 @@ def archive_raw_forecast_data_handler(file_path, file_digest):
 
     return object_key
 
-def process_forecast_data_handler(object_keys):
+def process_forecast_data(object_keys):
     ssh = SSHHook(ssh_conn_id=SPARK_SSH_CONN_ID)
     with ssh.get_conn() as conn:
         object_keys = ",".join(object_keys)
